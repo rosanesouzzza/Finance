@@ -1,70 +1,68 @@
 <!doctype html>
 <html lang="pt-br">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>FinanceSystem – Conexão (MSAL + Graph)</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FinanceSystem – MSAL (Popup) + SharePoint (Graph)</title>
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- 1) MSAL local (recomendado). Coloque o arquivo em /vendor/msal-browser.min.js -->
+  <script src="vendor/msal-browser.min.js"></script>
+
+  <!-- 2) Fallback automático para CDN se o local não carregar -->
+  <script>
+  (function ensureMsal(){
+    if (window.msal) return;
+    var s = document.createElement('script');
+    s.src = "https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.39.0/lib/msal-browser.min.js";
+    s.defer = true;
+    document.head.appendChild(s);
+  })();
+  </script>
 </head>
 <body>
-  <main class="wrap">
-    <h1>FinanceSystem – Conexão (MSAL + Graph)</h1>
+  <div class="container">
+    <h1>FinanceSystem — Conexão (MSAL + Graph)</h1>
 
-    <section class="card">
-      <div class="grid">
-        <label>
-          <span>Tenant ID</span>
-          <input id="tenantId" value="d80bf2e9-ace6-421a-86aa-38f9fed30153">
-        </label>
-        <label>
-          <span>Client ID (App Registration)</span>
-          <input id="clientId" value="4de58585-d608-4d47-b7c7-c8ef972e3695">
-        </label>
+    <div class="grid">
+      <div class="field">
+        <label>Tenant ID</label>
+        <input id="tenantId" value="d80bf2e9-ace6-421a-86aa-38f9fed30153" />
       </div>
 
-      <div class="grid">
-        <label>
-          <span>Site hostname (SharePoint)</span>
-          <input id="siteHost" value="alufran.sharepoint.com">
-        </label>
+      <div class="field">
+        <label>Client ID (App Registration)</label>
+        <input id="clientId" value="4de58585-d608-4d47-b7c7-c8ef972e3695" />
       </div>
 
-      <div class="grid">
-        <label>
-          <span>Site path</span>
-          <input id="sitePath" value="/sites/DiretoriaAdministrativa9">
-        </label>
+      <div class="field">
+        <label>Site hostname (SharePoint)</label>
+        <input id="siteHostname" value="alufran.sharepoint.com" />
       </div>
 
-      <div class="grid">
-        <label class="full">
-          <span>Redirect URI (cadastrada no App)</span>
-          <input id="redirectUri" readonly>
-        </label>
+      <div class="field">
+        <label>Site path</label>
+        <input id="sitePath" value="/sites/DiretoriaAdministrativa9" />
       </div>
 
-      <div class="actions">
-        <button id="btnLogin" class="primary">🔐 Entrar (Redirect)</button>
-        <button id="btnTest" class="ghost">📋 Testar acesso (listas do site – top 5)</button>
-        <button id="btnLogout" class="danger">🚪 Sair</button>
+      <div class="field">
+        <label>Redirect URI (cadastrada no App como SPA)</label>
+        <!-- Para popup não é obrigatório redirecionar aqui, mas deixe o redirect.html cadastrado no App
+             e definido abaixo como fallback/silent token. -->
+        <input id="redirectUri" value="https://rosanesouzzza.github.io/Finance/redirect.html" />
       </div>
+    </div>
 
-      <small>
-        MSAL + Microsoft Graph — escopos: <code>openid profile offline_access Sites.ReadWrite.All</code>.
-        Se nada abrir ao clicar em Entrar, permita pop-ups para este site (GitHub Pages).
-      </small>
-    </section>
+    <div class="actions">
+      <button id="btnLogin">🔑 Entrar (Popup)</button>
+      <button id="btnLogout">🚪 Sair</button>
+      <button id="btnTest">📋 Testar acesso (listas do site – top 5)</button>
+    </div>
 
-    <section class="card">
-      <h3>Log</h3>
-      <pre id="log"></pre>
-    </section>
-  </main>
+    <h3>Log</h3>
+    <pre id="log" class="log">Pronto para conectar…</pre>
+  </div>
 
-  <!-- ORDEM IMPORTA: primeiro MSAL local, depois seu app -->
-  <script src="vendor/msal-browser.min.js"></script>
-<script src="msal-loader.js"></script>
-<script src="app.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
-
