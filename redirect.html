@@ -1,29 +1,43 @@
 <!doctype html>
 <html lang="pt-br">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="utf-8" />
   <title>Finalizando login…</title>
-  <link rel="stylesheet" href="style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    html,body{height:100%;margin:0;background:#0f172a;color:#e5e7eb;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+    .card{display:flex;align-items:center;justify-content:center;height:100%}
+    .box{background:#111827;border:1px solid #1f2937;border-radius:14px;padding:28px 36px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+    h1{margin:0 0 8px;font-size:22px}
+    p{margin:0;color:#a5b4fc}
+  </style>
 </head>
-<body class="center">
-  <div class="box">
-    <h2>Finalizando login…</h2>
+<body>
+  <div class="card"><div class="box">
+    <h1>Finalizando login…</h1>
     <p>Você já pode fechar esta aba.</p>
-  </div>
+  </div></div>
 
-  <script src="vendor/msal-browser.min.js"></script>
   <script>
-    // Apenas processa o retorno do MSAL e fecha a janela
-    const msalConfig = { auth: { clientId: 'dummy', authority: 'https://login.microsoftonline.com/common' } };
-    const pca = new msal.PublicClientApplication(msalConfig);
-    pca.handleRedirectPromise().finally(() => {
-      // avisa a janela que abriu o login (se existir)
-      if (window.opener) {
-        try { window.opener.postMessage({ type: 'msal:done' }, '*'); } catch(e){}
+    // avisa a janela que abriu o login (se houver)
+    try {
+      if (window.opener && !window.opener.closed) {
+        window.opener.postMessage({ type: 'msal:auth:done' }, '*');
       }
-    });
+    } catch(e){}
+
+    // dá um tempinho pro MSAL processar e então fecha
+    setTimeout(function(){
+      // alguns navegadores bloqueiam window.close() se não foi aberto via script;
+      // mesmo assim tentamos:
+      window.close();
+      // como fallback, navega de volta ao site
+      setTimeout(function(){
+        if (!document.hidden) {
+          location.replace('https://rosanesouzzza.github.io/Finance/');
+        }
+      }, 600);
+    }, 300);
   </script>
 </body>
 </html>
-
