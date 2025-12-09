@@ -2,42 +2,43 @@
 <html lang="pt-br">
 <head>
   <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Finalizando login…</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="style.css" />
   <style>
-    html,body{height:100%;margin:0;background:#0f172a;color:#e5e7eb;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
-    .card{display:flex;align-items:center;justify-content:center;height:100%}
-    .box{background:#111827;border:1px solid #1f2937;border-radius:14px;padding:28px 36px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
-    h1{margin:0 0 8px;font-size:22px}
-    p{margin:0;color:#a5b4fc}
+    body{display:flex;align-items:center;justify-content:center;min-height:100vh}
+    .card{background:#0f172a;color:#fff;padding:28px 32px;border-radius:12px;
+          box-shadow:0 10px 30px rgba(0,0,0,.35);text-align:center;max-width:560px}
+    .card b{color:#93c5fd}
   </style>
 </head>
 <body>
-  <div class="card"><div class="box">
-    <h1>Finalizando login…</h1>
+  <div class="card">
+    <h2>Finalizando login…</h2>
     <p>Você já pode fechar esta aba.</p>
-  </div></div>
+  </div>
+
+  <!-- carrega MSAL local ou CDN (como fallback) -->
+  <script src="vendor/msal-browser.min.js"></script>
+  <script>
+    (function ensureMsal(){
+      if (window.msal) return;
+      var s = document.createElement('script');
+      s.src = "https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.39.0/lib/msal-browser.min.js";
+      s.defer = true;
+      document.head.appendChild(s);
+    })();
+  </script>
 
   <script>
-    // avisa a janela que abriu o login (se houver)
-    try {
+    // Apenas para tratar o retorno quando alguém cair aqui
+    window.addEventListener("load", () => {
+      if (!window.msal || !msal.PublicClientApplication) return;
+      // Se você quiser devolver o controle para a janela que abriu a popup:
       if (window.opener && !window.opener.closed) {
-        window.opener.postMessage({ type: 'msal:auth:done' }, '*');
+        try { window.opener.focus(); } catch(e){}
       }
-    } catch(e){}
-
-    // dá um tempinho pro MSAL processar e então fecha
-    setTimeout(function(){
-      // alguns navegadores bloqueiam window.close() se não foi aberto via script;
-      // mesmo assim tentamos:
-      window.close();
-      // como fallback, navega de volta ao site
-      setTimeout(function(){
-        if (!document.hidden) {
-          location.replace('https://rosanesouzzza.github.io/Finance/');
-        }
-      }, 600);
-    }, 300);
+    });
   </script>
 </body>
 </html>
