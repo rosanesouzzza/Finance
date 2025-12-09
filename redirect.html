@@ -1,1 +1,29 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Finalizando login…</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="center">
+  <div class="box">
+    <h2>Finalizando login…</h2>
+    <p>Você já pode fechar esta aba.</p>
+  </div>
+
+  <script src="vendor/msal-browser.min.js"></script>
+  <script>
+    // Apenas processa o retorno do MSAL e fecha a janela
+    const msalConfig = { auth: { clientId: 'dummy', authority: 'https://login.microsoftonline.com/common' } };
+    const pca = new msal.PublicClientApplication(msalConfig);
+    pca.handleRedirectPromise().finally(() => {
+      // avisa a janela que abriu o login (se existir)
+      if (window.opener) {
+        try { window.opener.postMessage({ type: 'msal:done' }, '*'); } catch(e){}
+      }
+    });
+  </script>
+</body>
+</html>
 
