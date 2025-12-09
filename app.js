@@ -1,160 +1,142 @@
-// ===== Util =====
-const $ = (id) => document.getElementById(id);
+// util simples para log
+const logEl = document.getElementById("log");
 const log = (msg) => {
-  const el = $("log");
-  const now = new Date().toLocaleTimeString();
-  el.textContent += `\n[${now}] ${msg}`;
-  el.scrollTop = el.scrollHeight;
+  const time = new Date().toTimeString().slice(0,8);
+  logEl.textContent += `\n[${time}] ${msg}`;
+  logEl.scrollTop = logEl.scrollHeight;
 };
 
+// pega os campos da UI
+const tenantIdEl   = document.getElementById("tenantId");
+const clientIdEl   = document.getElementById("clientId");
+const siteHostEl   = document.getElementById("siteHost");
+const sitePathEl   = document.getElementById("sitePath");
+const redirectEl   = document.getElementById("redirectUri");
+
+const btnLogin = document.getElementById("btnLogin");
+const btnTest  = document.getElementById("btnTest");
+const btnLogout = document.getElementById("btnLogout");
+
+// MSAL client (criado sob demanda para refletir mudanças de campos)
 let msalApp = null;
-let activeAccount = null;
+let account = null;
 
-// ===== Config inicial de MSAL (Popup) =====
-function buildMsalConfig() {
-  const clientId = $("clientId").value.trim();
-  const redirectUri = $("redirectUri").value.trim();
+function buildMsal() {
+  const tenantId   = tenantIdEl.value.trim();
+  const clientId   = clientIdEl.value.trim();
+  const redirectUri= redirectEl.value.trim();
 
-  return {
+  const authority = `https://login.microsoftonline.com/${tenantId}`; // ⚠️ TENANT-SPECIFIC
+
+  const msalConfig = {
     auth: {
       clientId,
-      // Mesmo com popup, é saudável ter um redirectUri cadastrado como SPA.
+      authority,            // single-tenant → NUNCA usar /common
       redirectUri,
-      // se precisar: authority: `https://login.microsoftonline.com/${$("tenantId").value.trim()}`
+      navigateToLoginRequestUrl: false
     },
     cache: {
-      cacheLocation: "localStorage",
+      cacheLocation: "sessionStorage",
       storeAuthStateInCookie: false
     },
     system: {
-      loggerOptions: {
-        loggerCallback: (level, message) => {
-          if (/acquire token silent|CacheLookup|serverTelemetry/i.test(message)) return;
-          log(`MSAL: ${message}`);
-        },
-        logLevel: msal.LogLevel.Warning
-      }
+      allowRedirectInIframe: false
     }
   };
+
+  msalApp = new msal.PublicClientApplication(msalConfig);
 }
 
-function ensureMsalLoaded() {
-  if (!window.msal || !window.msal.PublicClientApplication) {
-    log("[ERRO] MSAL não disponível. Verifique vendor/msal-browser.min.js ou a ordem dos <script>.");
-    alert("MSAL não carregou. Recarregue a página (Ctrl+F5).");
-    return false;
-  }
-  return true;
-}
+async function ensureLogin() {
+  if (!msalApp) buildMsal();
 
-function initMsal() {
-  if (!ensureMsalLoaded()) return;
-
-  const config = buildMsalConfig();
-  msalApp = new msal.PublicClientApplication(config);
-
-  // Restaura conta ativa, se houver
+  // tenta silent primeiro
   const accounts = msalApp.getAllAccounts();
   if (accounts.length > 0) {
-    activeAccount = accounts[0];
-    msalApp.setActiveAccount(activeAccount);
-    log(`Conta ativa: ${activeAccount.username}`);
-  } else {
-    log("deslogado");
+    account = accounts[0];
+    log(`Conta ativa: ${account.username}`);
+    return account;
   }
+
+  log("Silent falhou, tentando loginPopup…");
+  const loginRequest = {
+    scopes: ["openid", "profile", "offline_access"]
+  };
+
+  const login = await msalApp.loginPopup(loginRequest);
+  account = login.account;
+  log(`Login ok: ${account.username}`);
+  return account;
 }
 
-// ===== Login / Logout (POPUP) =====
-const loginScopes = ["openid", "profile", "offline_access", "Sites.ReadWrite.All"];
+async function getSpoToken() {
+  if (!account) await ensureLogin();
 
-async function loginPopup() {
+  const siteHost = siteHostEl.value.trim();
+
+  // Para SharePoint REST use escopos delegados do recurso SPO:
+  // Leia: AllSites.Read (ou AllSites.Write / AllSites.FullControl)
+  const tokenRequest = {
+    account,
+    scopes: [`https://${siteHost}/AllSites.Read`]
+  };
+
+  const resp = await msalApp.acquireTokenSilent(tokenRequest)
+               .catch(async (e) => {
+                 log("Silent token SPO falhou, tentando popup…");
+                 return msalApp.acquireTokenPopup(tokenRequest);
+               });
+
+  return resp.accessToken;
+}
+
+async function testLists() {
   try {
-    const res = await msalApp.loginPopup({
-      scopes: loginScopes,
-      prompt: "select_account"
+    await ensureLogin();
+    const accessToken = await getSpoToken();
+
+    const siteHost = siteHostEl.value.trim();
+    const sitePath = sitePathEl.value.trim();
+
+    const url = `https://${siteHost}${sitePath}/_api/web/lists?$select=Title,ItemCount&$top=5`;
+    const r = await fetch(url, {
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+        "Accept": "application/json;odata=nometadata"
+      }
     });
-    activeAccount = res.account;
-    msalApp.setActiveAccount(activeAccount);
-    log(`Login ok: ${activeAccount?.username}`);
-  } catch (e) {
-    log(`ERRO login: ${e.errorCode || ""} ${e.message || e}`);
-    alert("Falha no login (Popup). Veja o log.");
-  }
-}
 
-async function logoutPopup() {
-  try {
-    const acc = msalApp.getActiveAccount();
-    await msalApp.logoutPopup({ account: acc || undefined });
-    activeAccount = null;
-    log("Logout ok.");
-  } catch (e) {
-    log(`ERRO logout: ${e.message || e}`);
-  }
-}
-
-// ===== Token (POPUP) =====
-async function getTokenPopup(scopes) {
-  if (!activeAccount) {
-    throw new Error("Sem conta ativa. Faça login.");
-  }
-  try {
-    const res = await msalApp.acquireTokenSilent({
-      account: activeAccount,
-      scopes
-    });
-    return res.accessToken;
-  } catch (silentErr) {
-    log("Silent falhou, tentando acquireTokenPopup…");
-    const res = await msalApp.acquireTokenPopup({
-      account: activeAccount,
-      scopes
-    });
-    return res.accessToken;
-  }
-}
-
-// ===== Teste: pegar listas do site via Graph =====
-async function testListsTop5() {
-  try {
-    if (!activeAccount) {
-      alert("Faça login primeiro.");
-      return;
+    if (!r.ok) {
+      const text = await r.text();
+      throw new Error(`HTTP ${r.status} – ${text}`);
     }
 
-    const hostname = $("siteHostname").value.trim();          // ex: alufran.sharepoint.com
-    const sitePath = $("sitePath").value.trim();              // ex: /sites/DiretoriaAdministrativa9
-    const token = await getTokenPopup(["Sites.ReadWrite.All"]);
-
-    // 1) obtem siteId
-    // GET https://graph.microsoft.com/v1.0/sites/{hostname}:/sites/{path}
-    const siteUrl = `https://graph.microsoft.com/v1.0/sites/${encodeURIComponent(hostname)}:/sites${encodeURI(sitePath)}`;
-    log(`Graph: ${siteUrl}`);
-
-    let r = await fetch(siteUrl, { headers: { Authorization: `Bearer ${token}` }});
-    if (!r.ok) throw new Error(`Erro Graph site: ${r.status} ${await r.text()}`);
-    const site = await r.json();
-
-    // 2) listas top 5
-    // GET /sites/{id}/lists?$top=5&$select=name,id
-    const listsUrl = `https://graph.microsoft.com/v1.0/sites/${site.id}/lists?$top=5&$select=name,id`;
-    r = await fetch(listsUrl, { headers: { Authorization: `Bearer ${token}` }});
-    if (!r.ok) throw new Error(`Erro Graph lists: ${r.status} ${await r.text()}`);
     const data = await r.json();
+    log("Listas (top 5):");
+    (data.value || []).forEach((l, i) => {
+      log(`  ${i+1}. ${l.Title} (itens: ${l.ItemCount})`);
+    });
 
-    log(`Top 5 listas:`);
-    (data.value || []).forEach((it, i) => log(`  ${i+1}) ${it.name} (${it.id})`));
-  } catch (e) {
-    log(`ERRO teste: ${e.message || e}`);
-    alert("Falha no teste. Veja o log.");
+  } catch (err) {
+    log(`ERRO teste: ${err.message}`);
+    console.error(err);
   }
 }
 
-// ===== UI Bindings =====
-window.addEventListener("DOMContentLoaded", () => {
-  initMsal();
+async function doLogout() {
+  if (!msalApp) buildMsal();
+  const accounts = msalApp.getAllAccounts();
+  if (accounts.length) {
+    await msalApp.logoutPopup({ account: accounts[0] });
+    log("Logout realizado.");
+    account = null;
+  }
+}
 
-  $("btnLogin").addEventListener("click", loginPopup);
-  $("btnLogout").addEventListener("click", logoutPopup);
-  $("btnTest").addEventListener("click", testListsTop5);
-});
+// eventos
+btnLogin.addEventListener("click", ensureLogin);
+btnTest .addEventListener("click", testLists);
+btnLogout.addEventListener("click", doLogout);
+
+// boot
+log("Pronto para conectar…");
