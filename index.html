@@ -2,67 +2,52 @@
 <html lang="pt-br">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>FinanceSystem – MSAL (Popup) + SharePoint (Graph)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>FinanceSystem — Conexão (MSAL + Graph)</title>
   <link rel="stylesheet" href="style.css" />
-
-  <!-- 1) MSAL local (recomendado). Coloque o arquivo em /vendor/msal-browser.min.js -->
+  <!-- MSAL: carregue do vendor local (evita bloqueio de CDN) -->
   <script src="vendor/msal-browser.min.js"></script>
-
-  <!-- 2) Fallback automático para CDN se o local não carregar -->
-  <script>
-  (function ensureMsal(){
-    if (window.msal) return;
-    var s = document.createElement('script');
-    s.src = "https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.39.0/lib/msal-browser.min.js";
-    s.defer = true;
-    document.head.appendChild(s);
-  })();
-  </script>
+  <script defer src="app.js"></script>
 </head>
 <body>
-  <div class="container">
+  <main class="container">
     <h1>FinanceSystem — Conexão (MSAL + Graph)</h1>
 
-    <div class="grid">
-      <div class="field">
+    <section class="grid">
+      <div class="card">
         <label>Tenant ID</label>
         <input id="tenantId" value="d80bf2e9-ace6-421a-86aa-38f9fed30153" />
       </div>
 
-      <div class="field">
+      <div class="card">
         <label>Client ID (App Registration)</label>
         <input id="clientId" value="4de58585-d608-4d47-b7c7-c8ef972e3695" />
       </div>
 
-      <div class="field">
+      <div class="card">
         <label>Site hostname (SharePoint)</label>
-        <input id="siteHostname" value="alufran.sharepoint.com" />
+        <input id="siteHost" value="alufran.sharepoint.com" />
       </div>
 
-      <div class="field">
+      <div class="card">
         <label>Site path</label>
         <input id="sitePath" value="/sites/DiretoriaAdministrativa9" />
       </div>
 
-      <div class="field">
-        <label>Redirect URI (cadastrada no App como SPA)</label>
-        <!-- Para popup não é obrigatório redirecionar aqui, mas deixe o redirect.html cadastrado no App
-             e definido abaixo como fallback/silent token. -->
+      <div class="card">
+        <label>Redirect URI (cadastrada no App)</label>
         <input id="redirectUri" value="https://rosanesouzzza.github.io/Finance/redirect.html" />
       </div>
-    </div>
+    </section>
 
     <div class="actions">
-      <button id="btnLogin">🔑 Entrar (Popup)</button>
+      <button id="btnLogin">🔐 Entrar (Popup)</button>
       <button id="btnLogout">🚪 Sair</button>
-      <button id="btnTest">📋 Testar acesso (listas do site – top 5)</button>
+      <button id="btnTest">🧪 Testar acesso (listas do site – top 5)</button>
     </div>
 
-    <h3>Log</h3>
-    <pre id="log" class="log">Pronto para conectar…</pre>
-  </div>
-
-  <script src="app.js"></script>
+    <h2>Log</h2>
+    <pre id="log">Pronto para conectar…</pre>
+  </main>
 </body>
 </html>
