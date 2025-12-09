@@ -5,40 +5,17 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Finalizando login…</title>
   <link rel="stylesheet" href="style.css" />
-  <style>
-    body{display:flex;align-items:center;justify-content:center;min-height:100vh}
-    .card{background:#0f172a;color:#fff;padding:28px 32px;border-radius:12px;
-          box-shadow:0 10px 30px rgba(0,0,0,.35);text-align:center;max-width:560px}
-    .card b{color:#93c5fd}
-  </style>
+  <script src="vendor/msal-browser.min.js"></script>
 </head>
-<body>
-  <div class="card">
+<body class="center">
+  <div class="box">
     <h2>Finalizando login…</h2>
     <p>Você já pode fechar esta aba.</p>
   </div>
 
-  <!-- carrega MSAL local ou CDN (como fallback) -->
-  <script src="vendor/msal-browser.min.js"></script>
   <script>
-    (function ensureMsal(){
-      if (window.msal) return;
-      var s = document.createElement('script');
-      s.src = "https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.39.0/lib/msal-browser.min.js";
-      s.defer = true;
-      document.head.appendChild(s);
-    })();
-  </script>
-
-  <script>
-    // Apenas para tratar o retorno quando alguém cair aqui
-    window.addEventListener("load", () => {
-      if (!window.msal || !msal.PublicClientApplication) return;
-      // Se você quiser devolver o controle para a janela que abriu a popup:
-      if (window.opener && !window.opener.closed) {
-        try { window.opener.focus(); } catch(e){}
-      }
-    });
+    // Nada aqui: com loginPopup não há processamento; esta página só precisa existir
+    // e estar configurada como Redirect URI no App Registration.
   </script>
 </body>
 </html>
